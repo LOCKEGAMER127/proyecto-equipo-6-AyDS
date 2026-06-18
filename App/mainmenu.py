@@ -12,9 +12,6 @@ from customtkinter import CTkFont as Font
 from customtkinter import CTkScrollableFrame as ScrollableFrame
 
 
-# ──────────────────────────────────────────────
-# BD
-# ──────────────────────────────────────────────
 def conectar_db():
     cfg = json.loads(open('settings.json', 'r', encoding='utf-8').read())
     return sql.connect(
@@ -23,9 +20,6 @@ def conectar_db():
     )
 
 
-# ──────────────────────────────────────────────
-# CLASE BASE DE VENTANA
-# ──────────────────────────────────────────────
 class Ventana(Frame):
     def __init__(self, master, gestor, **kwargs):
         super().__init__(master, **kwargs)
@@ -38,37 +32,21 @@ class Ventana(Frame):
         self.pack_forget()
 
 
-# ──────────────────────────────────────────────
-# ENCUESTA BASE  →  quiz_base + materias
-# ──────────────────────────────────────────────
 class VentanaBase(Ventana):
-    """
-    Encuesta base que se aplica cada semestre.
-    Flujo:
-      1. El usuario llena los campos generales.
-      2. Al escribir el número de materias y presionar Enter (o el botón
-         "Continuar"), se generan dinámicamente los campos de materia/docente.
-      3. "Guardar" inserta en quiz_base y en materias.
-    """
-
     OPCIONES_SIT_ACAD = ['Regular', 'Recursador', 'Oyente']
-    OPCIONES_TOLERANCIA = ['Baja', 'Media', 'Alta']
 
     def __init__(self, master, gestor, boleta=None, **kwargs):
         super().__init__(master, gestor, **kwargs)
         self.boleta = boleta
-        self._campos_materias = []   # lista de (entry_nombre, entry_docente, cb_estres)
+        self._campos_materias = []
 
-        # ── Título ──────────────────────────────────────────────────────
         Label(self, text='Encuesta Base', font=Font(family='Calibri', size=18, weight='bold')).pack(pady=(12, 4))
         Label(self, text='Completa los datos del semestre actual', font=Font(size=12)).pack(pady=(0, 8))
 
-        # ── Scroll contenedor ───────────────────────────────────────────
         self.scroll = ScrollableFrame(self)
         self.scroll.pack(expand=True, fill='both', padx=16, pady=8)
         inner = self.scroll
 
-        # ── Campos generales ────────────────────────────────────────────
         self._make_label(inner, 'Grupo (ej. 4CM3)')
         self.e_grupo = self._make_entry(inner, 'Grupo')
 
@@ -110,32 +88,28 @@ class VentanaBase(Ventana):
         self.cb_percepcion.set('3')
         self.cb_percepcion.pack(fill='x', padx=8, pady=(0, 8))
 
-        self._make_label(inner, 'Hobbies / actividades fuera horas / por semana (1 = (0-2 horas), 2 = (3-7 horas), 3 = (8-13 horas), 4 = (14-19 horas), 5 = (20+ horas))')
+        self._make_label(inner, 'Hobbies / actividades fuera horas / por semana (1=(0-2h), 2=(3-7h), 3=(8-13h), 4=(14-19h), 5=(20+h))')
         self.cb_hobbies = OptionMenu(inner, values=['1', '2', '3', '4', '5'])
         self.cb_hobbies.set('3')
         self.cb_hobbies.pack(fill='x', padx=8, pady=(0, 8))
 
-        # ── Número de materias ──────────────────────────────────────────
         self._make_label(inner, '¿Cuántas materias llevas este semestre?')
         frame_nm = Frame(inner)
         frame_nm.pack(fill='x', padx=8, pady=(0, 8))
         self.e_num_materias = Entry(frame_nm, placeholder_text='Ej. 5', width=80)
         self.e_num_materias.pack(side='left', padx=(0, 8))
-        Button(frame_nm, text='Continuar →', width=120,
-            command=self._generar_campos_materias).pack(side='left')
+        Button(frame_nm, text='Continuar \u2192', width=120,
+               command=self._generar_campos_materias).pack(side='left')
         self.e_num_materias.bind('<Return>', lambda e: self._generar_campos_materias())
 
-        # ── Zona dinámica de materias ───────────────────────────────────
         self.frame_materias = Frame(inner)
         self.frame_materias.pack(fill='x', padx=8, pady=(0, 8))
 
-        # ── Botón guardar y status ──────────────────────────────────────
         Button(self, text='Guardar encuesta', command=self.guardar,
                font=Font(size=14, weight='bold'), height=40).pack(pady=10, padx=16, fill='x')
         self.status = Label(self, text='')
         self.status.pack(pady=(0, 8))
 
-    # ── Helpers UI ──────────────────────────────────────────────────────
     def _make_label(self, parent, text):
         Label(parent, text=text, font=Font(size=12)).pack(anchor='w', padx=8, pady=(6, 0))
 
@@ -144,9 +118,7 @@ class VentanaBase(Ventana):
         e.pack(fill='x', padx=8, pady=(0, 8))
         return e
 
-    # ── Generar campos de materias dinámicamente ────────────────────────
     def _generar_campos_materias(self):
-        # Limpiar campos anteriores
         for w in self.frame_materias.winfo_children():
             w.destroy()
         self._campos_materias.clear()
@@ -184,7 +156,6 @@ class VentanaBase(Ventana):
 
         self.status.configure(text=f'{n} materias listas para llenar.', text_color='gray')
 
-    # ── Guardar ─────────────────────────────────────────────────────────
     def guardar(self):
         if not self.boleta:
             self.status.configure(text='Boleta no definida.', text_color='red')
@@ -210,7 +181,6 @@ class VentanaBase(Ventana):
             self.status.configure(text='Semestre debe ser un número.', text_color='orange')
             return
 
-        # Validar materias
         if not self._campos_materias:
             self.status.configure(text='Primero indica cuántas materias llevas.', text_color='orange')
             return
@@ -231,7 +201,6 @@ class VentanaBase(Ventana):
             conn = conectar_db()
             cur = conn.cursor()
 
-            # ── 1. Insertar quiz_base ────────────────────────────────────
             cur.execute('''
                 INSERT INTO quiz_base
                     (usuario_boleta, fecha_quiz, grupo, sit_acad, semestre,
@@ -242,9 +211,7 @@ class VentanaBase(Ventana):
                   str_tolerancia, perse_carga, grupo_relacion,
                   pers_anim, motivacion, percepcion, hobbies))
 
-            # ── 2. Insertar/actualizar docentes y materias ───────────────
             for nombre_mat, nombre_doc, estres_mat in materias_datos:
-                # ¿Existe el docente? Si no, crearlo
                 cur.execute('SELECT iddocente FROM docente WHERE nombre = %s AND usuario_boleta = %s',
                             (nombre_doc, self.boleta))
                 row = cur.fetchone()
@@ -257,7 +224,6 @@ class VentanaBase(Ventana):
                     )
                     iddocente = cur.lastrowid
 
-                # Insertar materia con estrés percibido
                 cur.execute('''
                     INSERT INTO materias (nombre, estres, docente_iddocente, usuario_boleta)
                     VALUES (%s, %s, %s, %s)
@@ -266,26 +232,25 @@ class VentanaBase(Ventana):
             conn.commit()
             cur.close()
             conn.close()
-            self.status.configure(text='✓ Encuesta guardada correctamente.', text_color='green')
+            self.status.configure(text='Encuesta guardada correctamente.', text_color='green')
 
         except Exception as e:
             print(e)
             self.status.configure(text='Error al guardar. Revisa los datos.', text_color='red')
 
 
-# ──────────────────────────────────────────────
-# ACTIVIDADES
-# ──────────────────────────────────────────────
 class VentanaActividades(Ventana):
     """
-    Registra actividades en la tabla `actividades`.
-    La materia se elige de una lista desplegable cargada desde BD.
+    Campos de la tabla actividades:
+        dia                   DATE  -> fecha de asignacion
+        tiempo_estimado       DATE  -> fecha en que el alumno estima terminar
+        tiempo_estimado_final DATE  -> fecha limite / deadline
     """
 
     def __init__(self, master, gestor, boleta=None, **kwargs):
         super().__init__(master, gestor, **kwargs)
         self.boleta = boleta
-        self._materias_map = {}   # nombre_materia → idmaterias
+        self._materias_map = {}
 
         Label(self, text='Registrar Actividad',
               font=Font(family='Calibri', size=18, weight='bold')).pack(pady=(12, 4))
@@ -294,42 +259,39 @@ class VentanaActividades(Ventana):
         self.scroll.pack(expand=True, fill='both', padx=16, pady=8)
         inner = self.scroll
 
-        # Materia
         self._lbl(inner, 'Materia')
-        self.cb_materia = OptionMenu(inner, values=['— Cargando... —'])
+        self.cb_materia = OptionMenu(inner, values=['Cargando...'])
         self.cb_materia.pack(fill='x', padx=8, pady=(0, 8))
-        Button(inner, text='↻ Recargar materias', command=self._cargar_materias,
+        Button(inner, text='Recargar materias', command=self._cargar_materias,
                width=160, height=28).pack(anchor='w', padx=8, pady=(0, 10))
 
-        # Día
-        self._lbl(inner, f'Fecha (YYYY-MM-DD)  — hoy: {date.today()}')
+        self._lbl(inner, f'Fecha de asignacion (YYYY-MM-DD)  — hoy: {date.today()}')
         self.e_dia = Entry(inner, placeholder_text=str(date.today()))
         self.e_dia.pack(fill='x', padx=8, pady=(0, 8))
 
-        # Tiempo estimado
-        self._lbl(inner, 'Tiempo estimado (ej. "2 horas", "30 min")')
-        self.e_tiempo = Entry(inner, placeholder_text='Tiempo estimado')
-        self.e_tiempo.pack(fill='x', padx=8, pady=(0, 8))
+        self._lbl(inner, 'Fecha estimada en que terminaras (YYYY-MM-DD)')
+        self.e_tiempo_estimado = Entry(inner, placeholder_text='Ej. 2026-06-25')
+        self.e_tiempo_estimado.pack(fill='x', padx=8, pady=(0, 8))
 
-        # Estrés generado
-        self._lbl(inner, 'Estrés que genera (1 = poco, 5 = mucho)')
+        self._lbl(inner, 'Fecha limite / deadline (YYYY-MM-DD)')
+        self.e_tiempo_final = Entry(inner, placeholder_text='Ej. 2026-06-30')
+        self.e_tiempo_final.pack(fill='x', padx=8, pady=(0, 8))
+
+        self._lbl(inner, 'Estres que genera (1 = poco, 5 = mucho)')
         self.cb_estres = OptionMenu(inner, values=['1', '2', '3', '4', '5'])
         self.cb_estres.set('3')
         self.cb_estres.pack(fill='x', padx=8, pady=(0, 8))
 
-        # Descripción
-        self._lbl(inner, 'Descripción (máx. 45 caracteres)')
-        self.e_descripcion = Entry(inner, placeholder_text='Ej. "Estudiar parcial unidad 3"')
+        self._lbl(inner, 'Descripcion (max. 45 caracteres)')
+        self.e_descripcion = Entry(inner, placeholder_text='Ej. Estudiar parcial unidad 3')
         self.e_descripcion.pack(fill='x', padx=8, pady=(0, 8))
 
-        # Botón
         Button(self, text='Registrar actividad', command=self.registrar,
                font=Font(size=14, weight='bold'), height=40).pack(pady=10, padx=16, fill='x')
 
-        # Lista de actividades pendientes
         Label(self, text='Actividades registradas',
               font=Font(size=13, weight='bold')).pack(anchor='w', padx=16, pady=(8, 0))
-        self.frame_lista = ScrollableFrame(self, height=160)
+        self.frame_lista = ScrollableFrame(self, height=180)
         self.frame_lista.pack(fill='x', padx=16, pady=(4, 4))
 
         self.status = Label(self, text='')
@@ -360,6 +322,16 @@ class VentanaActividades(Ventana):
         except Exception as e:
             print(e)
 
+    def _validar_fecha(self, txt, campo):
+        try:
+            return date.fromisoformat(txt)
+        except ValueError:
+            self.status.configure(
+                text=f'Fecha de {campo} invalida. Usa el formato YYYY-MM-DD.',
+                text_color='orange'
+            )
+            return None
+
     def registrar(self):
         if not self.boleta:
             self.status.configure(text='Boleta no definida.', text_color='red')
@@ -368,19 +340,34 @@ class VentanaActividades(Ventana):
         materia_key = self.cb_materia.get()
         id_materia = self._materias_map.get(materia_key)
         if id_materia is None:
-            self.status.configure(text='Selecciona una materia válida.', text_color='orange')
+            self.status.configure(text='Selecciona una materia valida.', text_color='orange')
             return
 
-        dia_txt = self.e_dia.get().strip() or str(date.today())
-        tiempo = self.e_tiempo.get().strip()
-        estres = int(self.cb_estres.get())
-        descripcion = self.e_descripcion.get().strip()[:45]
+        dia_txt          = self.e_dia.get().strip() or str(date.today())
+        tiempo_est_txt   = self.e_tiempo_estimado.get().strip()
+        tiempo_final_txt = self.e_tiempo_final.get().strip()
+        estres           = int(self.cb_estres.get())
+        descripcion      = self.e_descripcion.get().strip()[:45]
 
-        if not tiempo:
-            self.status.configure(text='Indica el tiempo estimado.', text_color='orange')
+        dia = self._validar_fecha(dia_txt, 'asignacion')
+        if dia is None:
             return
+        tiempo_est = self._validar_fecha(tiempo_est_txt, 'estimada de termino')
+        if tiempo_est is None:
+            return
+        tiempo_final = self._validar_fecha(tiempo_final_txt, 'limite')
+        if tiempo_final is None:
+            return
+
+        if tiempo_est > tiempo_final:
+            self.status.configure(
+                text='La fecha estimada no puede ser posterior al deadline.',
+                text_color='orange'
+            )
+            return
+
         if not descripcion:
-            self.status.configure(text='Agrega una descripción a la actividad.', text_color='orange')
+            self.status.configure(text='Agrega una descripcion a la actividad.', text_color='orange')
             return
 
         try:
@@ -388,17 +375,29 @@ class VentanaActividades(Ventana):
             cur = conn.cursor()
             cur.execute('''
                 INSERT INTO actividades
-                    (usuario_boleta, materias_idmaterias, dia, tiempo_estimado, estres_generado, estado, descripcion)
-                VALUES (%s, %s, %s, %s, %s, 0, %s)
-            ''', (self.boleta, id_materia, dia_txt, tiempo, estres, descripcion))
+                    (usuario_boleta, materias_idmaterias, dia,
+                     tiempo_estimado, tiempo_estimado_final,
+                     estres_generado, estado, descripcion)
+                VALUES (%s, %s, %s, %s, %s, %s, 0, %s)
+            ''', (self.boleta, id_materia, dia,
+                  tiempo_est, tiempo_final,
+                  estres, descripcion))
             conn.commit()
             cur.close()
             conn.close()
-            self.status.configure(text='✓ Actividad registrada.', text_color='green')
+            self.status.configure(text='Actividad registrada.', text_color='green')
+            self._limpiar_campos()
             self._refrescar_lista()
         except Exception as e:
             print(e)
             self.status.configure(text='Error al registrar actividad.', text_color='red')
+
+    def _limpiar_campos(self):
+        self.e_dia.delete(0, 'end')
+        self.e_tiempo_estimado.delete(0, 'end')
+        self.e_tiempo_final.delete(0, 'end')
+        self.e_descripcion.delete(0, 'end')
+        self.cb_estres.set('3')
 
     def _refrescar_lista(self):
         for w in self.frame_lista.winfo_children():
@@ -409,12 +408,14 @@ class VentanaActividades(Ventana):
             conn = conectar_db()
             cur = conn.cursor()
             cur.execute('''
-                SELECT a.id_actividad, m.nombre, a.dia, a.tiempo_estimado, a.estres_generado, a.estado, a.descripcion
+                SELECT a.id_actividad, m.nombre, a.dia,
+                       a.tiempo_estimado, a.tiempo_estimado_final,
+                       a.estres_generado, a.estado, a.descripcion
                 FROM actividades a
                 LEFT JOIN materias m ON a.materias_idmaterias = m.idmaterias
                 WHERE a.usuario_boleta = %s
-                ORDER BY a.dia DESC
-                LIMIT 10
+                ORDER BY a.tiempo_estimado_final ASC
+                LIMIT 15
             ''', (self.boleta,))
             rows = cur.fetchall()
             cur.close()
@@ -424,20 +425,37 @@ class VentanaActividades(Ventana):
                 Label(self.frame_lista, text='Sin actividades registradas.').pack(anchor='w', padx=8)
                 return
 
+            hoy = date.today()
             for r in rows:
-                estado_txt = '✓ Completada' if r[5] else '⏳ Pendiente'
-                color = 'green' if r[5] else 'gray'
-                desc = r[6] or ''
-                txt = f'#{r[0]}  [{r[1]}]  {r[2]}  |  {r[3]}  |  Estrés: {r[4]}  |  {estado_txt}'
+                estado   = r[6]
+                deadline = r[4]
+                vencida  = (not estado) and deadline and (deadline < hoy)
+
+                if estado:
+                    estado_txt, color = 'Completada', 'green'
+                elif vencida:
+                    estado_txt, color = 'Vencida', '#e05252'
+                else:
+                    estado_txt, color = 'Pendiente', 'gray'
+
+                txt = (f'#{r[0]}  [{r[1]}]  Asignada: {r[2]}'
+                       f'  |  Est: {r[3]}  ->  Limite: {r[4]}'
+                       f'  |  Estres: {r[5]}  |  {estado_txt}')
+
                 row_frame = Frame(self.frame_lista, fg_color='transparent')
                 row_frame.pack(fill='x', padx=4, pady=(3, 0))
-                Label(row_frame, text=txt, font=Font(size=11), text_color=color).pack(side='left')
-                if not r[5]:
+                Label(row_frame, text=txt, font=Font(size=11),
+                      text_color=color, wraplength=660, justify='left').pack(side='left')
+
+                if not estado:
                     Button(row_frame, text='Completar', width=90, height=24,
                            command=lambda aid=r[0]: self._completar(aid)).pack(side='right', padx=4)
+
+                desc = r[7] or ''
                 if desc:
-                    Label(self.frame_lista, text=f'   📝 {desc}',
+                    Label(self.frame_lista, text=f'   {desc}',
                           font=Font(size=10), text_color='gray').pack(anchor='w', padx=8, pady=(0, 4))
+
         except Exception as e:
             print(e)
 
@@ -459,32 +477,24 @@ class VentanaActividades(Ventana):
         self._refrescar_lista()
 
 
-# ──────────────────────────────────────────────
-# GESTOR DE VENTANAS
-# ──────────────────────────────────────────────
 class GestorVentanas:
     def __init__(self, master, boleta=None):
         self.master = master
         self.boleta = boleta
-        self.ventana_actual = None
 
-        # ── Nav bar ─────────────────────────────────────────────────────
         nav = Frame(master, height=50)
         nav.pack(fill='x', padx=10, pady=6)
 
-        ctk.CTkLabel(nav, text=f'👤 Boleta: {boleta}',
+        ctk.CTkLabel(nav, text=f'Boleta: {boleta}',
                      font=Font(size=13)).pack(side='left', padx=12)
-
-        Button(nav, text='📋 Encuesta Base',
+        Button(nav, text='Encuesta Base',
                command=lambda: self.show('base'), width=150).pack(side='left', padx=4)
-        Button(nav, text='📌 Actividades',
+        Button(nav, text='Actividades',
                command=lambda: self.show('actividades'), width=140).pack(side='left', padx=4)
 
-        # ── Contenedor ──────────────────────────────────────────────────
         self.container = Frame(master)
         self.container.pack(expand=True, fill='both')
 
-        # ── Crear ventanas ───────────────────────────────────────────────
         self.windows = {
             'base':        VentanaBase(self.container, self, boleta=self.boleta),
             'actividades': VentanaActividades(self.container, self, boleta=self.boleta),
@@ -500,9 +510,6 @@ class GestorVentanas:
             win.show()
 
 
-# ──────────────────────────────────────────────
-# MAIN
-# ──────────────────────────────────────────────
 if __name__ == '__main__':
     from customtkinter import CTk as Tk
     app = Tk()
