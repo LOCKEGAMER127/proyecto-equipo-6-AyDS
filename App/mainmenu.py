@@ -10,7 +10,7 @@ from customtkinter import CTkOptionMenu as OptionMenu
 from customtkinter import CTkButton as Button
 from customtkinter import CTkFont as Font
 from customtkinter import CTkScrollableFrame as ScrollableFrame
-
+from resultados_estres import ResultadosWindow
 
 # ──────────────────────────────────────────────
 # BD
@@ -479,6 +479,8 @@ class GestorVentanas:
                command=lambda: self.show('base'), width=150).pack(side='left', padx=4)
         Button(nav, text='📌 Actividades',
                command=lambda: self.show('actividades'), width=140).pack(side='left', padx=4)
+        Button(nav, text='📊 Ver Resultados', fg_color="#2b7b58", hover_color="#1e5c41",
+               command=lambda: ResultadosWindow(self.boleta), width=140).pack(side='left', padx=4)
 
         # ── Contenedor ──────────────────────────────────────────────────
         self.container = Frame(master)
