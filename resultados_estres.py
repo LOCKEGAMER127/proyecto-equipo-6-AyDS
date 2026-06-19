@@ -9,7 +9,7 @@ class ResultadosWindow(ctk.CTkToplevel):
         self.geometry("500x620")
         self.resizable(False, False)
         
-        # Obliga a la ventana a quedarse al frente
+       
         self.attributes('-topmost', True)
         self.grab_set()
         
@@ -32,7 +32,7 @@ class ResultadosWindow(ctk.CTkToplevel):
         conexion = self.conectar_db()
         cursor = conexion.cursor(sql.cursors.DictCursor)
         try:
-            # 1. Obtiene la última encuesta base (columnas exactas de tu Base de Datos)
+            
             cursor.execute("""
                 SELECT str_tolerancia, perse_carga, persepcion_academica 
                 FROM quiz_base 
@@ -41,7 +41,7 @@ class ResultadosWindow(ctk.CTkToplevel):
             """, (self.boleta,))
             encuesta = cursor.fetchone()
             
-            # 2. Obtiene el promedio de tus tareas (columna exacta: estres_generado)
+            
             cursor.execute("""
                 SELECT AVG(estres_generado) as prom_estres 
                 FROM actividades 
@@ -70,14 +70,14 @@ class ResultadosWindow(ctk.CTkToplevel):
         else:
             estres_base = 0.0
 
-        # REQUERIMIENTO 2: Estrés calculado SOLAMENTE con actividades
+        
         estres_solo_actividades = round(prom_act, 2)
         
-        # REQUERIMIENTO 1: Estrés General (Modelo Híbrido: 40% Encuesta Base + 60% Actividades)
+        
         if prom_act > 0:
             estres_general = (estres_base * 0.4) + (prom_act * 0.6)
         else:
-            # Si el alumno no ha registrado tareas, su estrés general equivale a su estado inicial
+            
             estres_general = estres_base
             
         return round(estres_general, 2), estres_solo_actividades
@@ -103,7 +103,7 @@ class ResultadosWindow(ctk.CTkToplevel):
 
         ctk.CTkLabel(frame_principal, text="📊 Diagnóstico del Sistema", font=("Segoe UI", 20, "bold")).pack(pady=(15, 15))
 
-        # ─── BLOQUE 1: ESTRÉS GENERAL ───
+        #BLOQUE 1: ESTRÉS GENERAL
         frame_gen = ctk.CTkFrame(frame_principal, fg_color="transparent")
         frame_gen.pack(fill="x", padx=30, pady=10)
         
@@ -114,10 +114,10 @@ class ResultadosWindow(ctk.CTkToplevel):
         lbl_num_gen.pack(pady=2)
         ctk.CTkLabel(frame_gen, text=txt_gen, font=("Segoe UI", 12, "bold"), text_color=color_gen).pack()
 
-        # Separador visual
+        
         ctk.CTkFrame(frame_principal, height=2, fg_color="gray").pack(fill="x", padx=40, pady=15)
 
-        # ─── BLOQUE 2: ESTRÉS SOLO ACTIVIDADES ───
+        #  BLOQUE 2: ESTRÉS SOLO ACTIVIDADES 
         frame_act = ctk.CTkFrame(frame_principal, fg_color="transparent")
         frame_act.pack(fill="x", padx=30, pady=10)
         
@@ -128,5 +128,5 @@ class ResultadosWindow(ctk.CTkToplevel):
         lbl_num_act.pack(pady=2)
         ctk.CTkLabel(frame_act, text=txt_act, font=("Segoe UI", 12, "bold"), text_color=color_act).pack()
 
-        # Botón para cerrar
+        
         ctk.CTkButton(frame_principal, text="Entendido", command=self.destroy, font=("Segoe UI", 13, "bold")).pack(pady=(25, 10))
