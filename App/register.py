@@ -12,14 +12,16 @@ from customtkinter import CTkComboBox as ComboBox
 
 
 class RegisterWindow(Tk):
-    def __init__(self, fg_color = None, **kwargs):
+    def __init__(self, fg_color=None, **kwargs):
         super().__init__(fg_color, **kwargs)
         self.geometry("400x710")
         self.title("Login / Register")
-    
 
     def conectar_db(self):
-        DATABASE = json.loads(open('settings.json', 'r', encoding='utf-8').read())
+        try:
+            DATABASE = json.loads(open('settings.json', 'r', encoding='utf-8').read())
+        except Exception:
+            DATABASE = {"host": "localhost", "user": "root", "password": "", "database": "ayds"}
         return sql.connect(
             host=DATABASE["host"],
             user=DATABASE["user"],
@@ -30,19 +32,20 @@ class RegisterWindow(Tk):
     def abrir_login(self):
         self.destroy()  
         from App.login import LoginWindow
-
         LoginWindow().show()
 
     def recibir_preguntas(self):
-        conn = self.conectar_db()
-        cur = conn.cursor()
-
-        cur.execute("SELECT * FROM preguntas_recuperacion")
-        response = cur.fetchall()
-
-        preguntas = [pregunta for _, pregunta in response]
-        conn.close()
-        return preguntas
+        try:
+            conn = self.conectar_db()
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM preguntas_recuperacion")
+            response = cur.fetchall()
+            preguntas = [pregunta for _, pregunta in response]
+            conn.close()
+            return preguntas
+        except Exception as e:
+            print("Error conectando a BD para preguntas:", e)
+            return ["¿Cuál es el nombre de tu primera mascota?", "¿Ciudad de nacimiento?"]
 
     def register(self):
         usuario = self.user_entry.get().strip().lower()
@@ -50,20 +53,27 @@ class RegisterWindow(Tk):
         contrasena2 = self.pass2_entry.get().strip()
         pregunta_recuperacion = self.rec_question.get().strip()
         respuesta = self.rec_answer.get().strip().lower()
+        
+        if not respuesta: 
+            return self.resultado_label.configure(text="Respuesta de recuperación inválida", text_color="orange")
+            
         respuesta_hash = hashlib.sha256(respuesta.encode()).hexdigest()
+        
         try:
             boleta = int(self.boleta.get().strip())
         except ValueError:
             return self.resultado_label.configure(text="Boleta inválida", text_color="orange")
         
-        if not boleta: return self.resultado_label.configure(text = "Ingresa una boleta válida", text_color="orange")
+        if not boleta: 
+            return self.resultado_label.configure(text="Ingresa una boleta válida", text_color="orange")
         
-        if pregunta_recuperacion == "Recuperacion": return self.resultado_label.configure(text="Pregunta de recuperación inválida",
-                                                                                    text_color="orange")
-        else: id_recuperacion = self.recibir_preguntas().index(pregunta_recuperacion)+1
-        
-        if not respuesta: return self.resultado_label.configure(text="Respuesta de recupración inválida",
-                                                        text_color="orange")
+        if pregunta_recuperacion == "Recuperacion": 
+            return self.resultado_label.configure(text="Pregunta de recuperación inválida", text_color="orange")
+        else: 
+            try:
+                id_recuperacion = self.recibir_preguntas().index(pregunta_recuperacion) + 1
+            except ValueError:
+                id_recuperacion = 1
         
         if contrasena != contrasena2:
             self.resultado_label.configure(text="Las contraseñas no coinciden", text_color="orange")
@@ -99,6 +109,7 @@ class RegisterWindow(Tk):
             conexion.commit()
 
             self.resultado_label.configure(text="Usuario registrado", text_color="green")
+            
             # Limpiar campos
             self.user_entry.delete(0, "end")
             self.pass_entry.delete(0, "end")
@@ -162,3 +173,8 @@ class RegisterWindow(Tk):
         self.resultado_label.pack()
 
         self.mainloop()
+
+
+if __name__ == "__main__":
+    app = RegisterWindow()
+    app.show()
